@@ -17,7 +17,7 @@ disable_warnings()
 
 # global variables
 
-api_key = 'RGAPI-d6183b4a-d552-48c5-83ea-855dbc870a02'
+api_key = 'YOUR PRIVATE KEY HERE'
 watcher = LolWatcher(api_key)
 my_region = 'euw1'
 
