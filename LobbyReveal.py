@@ -1,4 +1,3 @@
-import http
 import sys
 import requests
 from urllib3 import disable_warnings
@@ -87,13 +86,8 @@ connector = Connector()
 async def connect(connection):
     
     global showNotInChampSelect
-
-    # get LeagueClient name
     getLCUName()
-
-    # get app port & auth token for each client
     getLCUArguments()
-
     lcu_api = 'https://127.0.0.1:' + app_port
     riotclient_api = 'https://127.0.0.1:' + riotclient_app_port
 
@@ -115,18 +109,12 @@ async def connect(connection):
         'User-Agent': 'LeagueOfLegendsClient',
         'Authorization': 'Basic ' + riotclient_session_token
     }
-
-    
-        # get current summoner
     get_current_summoner = lcu_api + '/lol-summoner/v1/current-summoner'
 
     r = requests.get(get_current_summoner, headers=lcu_headers, verify=False)
     r = json.loads(r.text)
-
+    print("Welcome to the League of Legends LobbyReveal Bot, work in ranked. Work in ranked ! :)")
     print('Connected: ' + r['displayName'])
-
-    # get lobby
-    
     try :
         checkForLobby = True
         while True:
@@ -134,8 +122,6 @@ async def connect(connection):
             get_champ_select = lcu_api + '/lol-champ-select/v1/session'
             r = requests.get(get_champ_select, headers=lcu_headers, verify=False)
             r = json.loads(r.text)
-
-            # if 'httpStatus' in r and r['httpStatus'] == 404:
             if 'errorCode' in r:
                 checkForLobby = True
                 if showNotInChampSelect:
@@ -145,11 +131,15 @@ async def connect(connection):
                 if checkForLobby:
                     clear()
                     print('\n* Found lobby. *\n')
-                    get_lobby = riotclient_api + '/chat/v5/participants/champ-select'
-                    r = requests.get(get_lobby, headers=riotclient_headers, verify=False)
-                    r = json.loads(r.text)              
                     while 1:
-                        nameArr = []
+                        try:
+                            get_lobby = riotclient_api + '/chat/v5/participants/champ-select'
+                            r = requests.get(get_lobby, headers=riotclient_headers, verify=False)
+                            r = json.loads(r.text)
+                        except:
+                            print("la route n'existe plus, logiciel obselète")
+                        nameArr = [] 
+                        nospaces = []
                         try:
                             getChat = await connection.request('get', "/lol-chat/v1/conversations")
                             chat = await getChat.json()
@@ -167,21 +157,17 @@ async def connect(connection):
                                 for x in r['participants']:
                                     print(x['game_name'] + ' joined the lobby')
                                     nameArr.append(x['game_name'])
-                                    #await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Hello " + x['game_name'] + " :)" })
-                                
+                                    nospaces.append(x['game_name'].replace(" ", "%20"))
                                 print(len(nameArr))
-                                #for i in range(len(nameArr)):
-                                #    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "HELLO " + nameArr[i] + " :)" })
-                                
                                 if len(nameArr) == 5:
-                                    #for i in range(len(nameArr)):
-                                       # await connection.request('post', request, headers=headers, data={"type":"chat", "body": "~~ " + nameArr[i] + " ~~" })
-                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://u.gg/multisearch?summoners=" + str(nameArr[0]) + "," + str(nameArr[1]) + "," + str(nameArr[2]) + "," + str(nameArr[3]) + "," + str(nameArr[4]) + "&region=euw1"})
-                                
+                                    for i in range(len(nameArr)):
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "✰✰✰ " + nameArr[i] + " ✰✰✰" })
+                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://u.gg/multisearch?summoners=" + str(nospaces[0]) + "," + str(nospaces[1]) + "," + str(nospaces[2]) + "," + str(nospaces[3]) + "," + str(nospaces[4]) + "&region=euw1"})
+                                    exit(1)
                                 print('\n')
-                                showNotInChampSelect = True
-                                checkForLobby = False
-                        sleep(1)
+                                showNotInChampSelect = False
+                                checkForLobby = True
+                                    
     except KeyboardInterrupt:
         print('\n\n* Exiting... *')
         sys.exit(0)
