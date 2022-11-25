@@ -8,6 +8,7 @@ import psutil
 import base64
 from os import system, name
 from lcu_driver import Connector
+from riotwatcher import LolWatcher, ApiError
 
 
 # suppress warnings
@@ -15,6 +16,11 @@ from lcu_driver import Connector
 disable_warnings()
 
 # global variables
+
+api_key = 'RGAPI-d6183b4a-d552-48c5-83ea-855dbc870a02'
+watcher = LolWatcher(api_key)
+my_region = 'euw1'
+
 app_port = None
 auth_token = None
 riotclient_auth_token = None
@@ -86,8 +92,11 @@ connector = Connector()
 async def connect(connection):
     
     global showNotInChampSelect
+
     getLCUName()
+
     getLCUArguments()
+
     lcu_api = 'https://127.0.0.1:' + app_port
     riotclient_api = 'https://127.0.0.1:' + riotclient_app_port
 
@@ -109,12 +118,14 @@ async def connect(connection):
         'User-Agent': 'LeagueOfLegendsClient',
         'Authorization': 'Basic ' + riotclient_session_token
     }
+
     get_current_summoner = lcu_api + '/lol-summoner/v1/current-summoner'
 
     r = requests.get(get_current_summoner, headers=lcu_headers, verify=False)
     r = json.loads(r.text)
-    print("Welcome to the League of Legends LobbyReveal Bot, work in ranked. Work in ranked ! :)")
+    print("Welcome to the League of Legends Party name finder :)!")
     print('Connected: ' + r['displayName'])
+
     try :
         checkForLobby = True
         while True:
@@ -140,6 +151,10 @@ async def connect(connection):
                             print("la route n'existe plus, logiciel obselète")
                         nameArr = [] 
                         nospaces = []
+                        ranked_stats = []
+                        winrate = []
+                        elo = []
+                        rank = []
                         try:
                             getChat = await connection.request('get', "/lol-chat/v1/conversations")
                             chat = await getChat.json()
@@ -151,17 +166,34 @@ async def connect(connection):
                                     lobbyID = chat[i]["id"]
                                 except KeyError:
                                     print("error in get lobby id")
-                                print("lobbyID: " + lobbyID)
                                 headers = {'Content-type': 'application/json'}
                                 request = "/lol-chat/v1/conversations/" + str(lobbyID) + "/messages"
                                 for x in r['participants']:
-                                    print(x['game_name'] + ' joined the lobby')
                                     nameArr.append(x['game_name'])
                                     nospaces.append(x['game_name'].replace(" ", "%20"))
                                 print(len(nameArr))
                                 if len(nameArr) == 5:
                                     for i in range(len(nameArr)):
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "✰✰✰ " + nameArr[i] + " ✰✰✰" })
+                                        print("nickname: " + nameArr[i])
+                                        useri = watcher.summoner.by_name(my_region, nameArr[i])
+                                        user_id = useri['id']
+                                        ranked_stats = watcher.league.by_summoner(my_region, user_id)
+                                        try:
+                                            win = ranked_stats[0]['wins']
+                                            lose = ranked_stats[0]['losses']
+                                            ello = ranked_stats[0]['tier']
+                                            raank = ranked_stats[0]['rank']
+                                            winrate.append((win/(win+lose))*100)
+                                            elo.append(ello)
+                                            rank.append(raank)
+                                        except IndexError:
+                                            print("unranked or not enough ranked games")
+                                            winrate.append("unknown")
+                                            elo.append("unknown")
+                                            rank.append("unknown")
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo[i]) + " " + str(rank[i]) + " with a " + str(round(winrate[i],2 )) + "% winrate" })
+                                        sleep(0.1)
+                                    
                                     await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://u.gg/multisearch?summoners=" + str(nospaces[0]) + "," + str(nospaces[1]) + "," + str(nospaces[2]) + "," + str(nospaces[3]) + "," + str(nospaces[4]) + "&region=euw1"})
                                     exit(1)
                                 print('\n')
