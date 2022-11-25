@@ -6,6 +6,11 @@ requirements: python
 ```
 pip install lcu_driver
 ```
+you need to past your api key line 20
+```
+api_key = 'YOUR PRIVATE KEY HERE'
+```
+
 for create a LobbyReveal.exe 
 ```
 pip install PyInstaller # if you don't have it
