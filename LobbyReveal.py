@@ -201,7 +201,7 @@ async def connect(connection):
                                     if totalWinrate / 5 > 50:
                                         await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5,2)) + "%, We can win this!"})
                                     else:
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5),2) + "%, it will be hard ..."})
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5,2)) + "%, it will be hard ..."})
                                     sleep(15)
                                     exit(1)    
                                     showNotInChampSelect = False
