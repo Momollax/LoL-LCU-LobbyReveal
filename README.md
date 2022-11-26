@@ -5,10 +5,13 @@ Python script that allow user to see the member of the team in champ select, and
 requirements: python
 ```
 pip install lcu_driver
+pip install riotwatcher
 ```
+create a Riot Api key
+https://developer.riotgames.com/
 you need to past your api key line 20
 ```
-api_key = 'YOUR PRIVATE KEY HERE'
+api_key = '<RIOT API KEY>'
 ```
 
 for create a LobbyReveal.exe 

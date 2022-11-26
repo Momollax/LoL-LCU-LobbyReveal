@@ -17,7 +17,7 @@ disable_warnings()
 
 # global variables
 
-api_key = 'YOUR PRIVATE KEY HERE'
+api_key = '<RIOT API KEY>'
 watcher = LolWatcher(api_key)
 my_region = 'euw1'
 
@@ -152,7 +152,7 @@ async def connect(connection):
                         nameArr = [] 
                         nospaces = []
                         ranked_stats = []
-                        winrate = []
+                        totalWinrate = 0
                         elo = []
                         rank = []
                         try:
@@ -174,31 +174,41 @@ async def connect(connection):
                                 print(len(nameArr))
                                 if len(nameArr) == 5:
                                     for i in range(len(nameArr)):
-                                        print("nickname: " + nameArr[i])
-                                        useri = watcher.summoner.by_name(my_region, nameArr[i])
-                                        user_id = useri['id']
+                                        sleep(1)
+                                        usera = watcher.summoner.by_name(my_region, nameArr[i])
+                                        user_id = usera['id']
+                                        print(nameArr[i], " : ", user_id)
                                         ranked_stats = watcher.league.by_summoner(my_region, user_id)
+                                        print(ranked_stats)
+                                        win = ranked_stats[0]['wins']
+                                        lose = ranked_stats[0]['losses']
+                                        winrate = win / (win + lose) * 100
+                                        gameNbr = win + lose
+                                        totalWinrate = totalWinrate + winrate
                                         try:
-                                            win = ranked_stats[0]['wins']
-                                            lose = ranked_stats[0]['losses']
-                                            ello = ranked_stats[0]['tier']
-                                            raank = ranked_stats[0]['rank']
-                                            winrate.append((win/(win+lose))*100)
-                                            elo.append(ello)
-                                            rank.append(raank)
-                                        except IndexError:
-                                            print("unranked or not enough ranked games")
-                                            winrate.append("unknown")
-                                            elo.append("unknown")
-                                            rank.append("unknown")
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo[i]) + " " + str(rank[i]) + " with a " + str(round(winrate[i],2 )) + "% winrate" })
-                                        sleep(0.1)
-                                    
-                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://u.gg/multisearch?summoners=" + str(nospaces[0]) + "," + str(nospaces[1]) + "," + str(nospaces[2]) + "," + str(nospaces[3]) + "," + str(nospaces[4]) + "&region=euw1"})
-                                    exit(1)
+                                            elo = ranked_stats[0]['tier']
+                                        except KeyError:
+                                            print("tier error")
+                                            elo = "unranked"
+                                        try:
+                                            rank = ranked_stats[0]['rank']
+                                        except KeyError:
+                                            print("rank error")
+                                            rank = ""
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
+                                    print("totalWinrate =" + str(totalWinrate / 5))
+                                    sleep(7)
+                                    if totalWinrate / 5 > 50:
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5,2)) + "%, We can win this!"})
+                                    else:
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5),2) + "%, it will be hard ..."})
+                                    sleep(15)
+                                    exit(1)    
+                                    showNotInChampSelect = False
+                                    checkForLobby = True    
                                 print('\n')
-                                showNotInChampSelect = False
-                                checkForLobby = True
+                                #showNotInChampSelect = False
+                                #checkForLobby = True
                                     
     except KeyboardInterrupt:
         print('\n\n* Exiting... *')
