@@ -1,3 +1,5 @@
+!BANABLE!
+
 # LoL-LCU-LobbyReveal
 Python script that get the name of eatch memeber of the team in a ranked champ select, get the elo, winrate, and rank of eatch player, and print all the necessary information in the chat. 
 
