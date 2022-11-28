@@ -25,3 +25,6 @@ or run normaly with python
 ```
 python3 LobbyReveal.py
 ```
+
+Please contact me on discord if you have any questions.
+Momolly#7525

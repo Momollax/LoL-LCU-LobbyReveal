@@ -11,8 +11,6 @@ from lcu_driver import Connector
 from riotwatcher import LolWatcher, ApiError
 
 
-# suppress warnings
-# requests.packages.urllib3.disable_warnings()
 disable_warnings()
 
 # global variables
@@ -30,7 +28,6 @@ lcu_name = None  # LeagueClientUx executable name
 showNotInChampSelect = True
 
 # functions
-
 
 def getLCUName():
     '''
@@ -76,7 +73,7 @@ def getLCUArguments():
                 if '--riotclient-app-port=' in a:
                     riotclient_app_port = a.split('--riotclient-app-port=', 1)[1]
 
-
+                    
 def clear():
     # for windows
     if name == 'nt':
@@ -153,8 +150,9 @@ async def connect(connection):
                         nospaces = []
                         ranked_stats = []
                         totalWinrate = 0
-                        elo = []
-                        rank = []
+                        nbPlayer = 5
+                        elo = ""
+                        rank = ""
                         try:
                             getChat = await connection.request('get', "/lol-chat/v1/conversations")
                             chat = await getChat.json()
@@ -172,41 +170,61 @@ async def connect(connection):
                                     nameArr.append(x['game_name'])
                                     nospaces.append(x['game_name'].replace(" ", "%20"))
                                 print(len(nameArr))
-                                if len(nameArr) == 5:
+                                if len(nameArr) == nbPlayer:
                                     for i in range(len(nameArr)):
-                                        sleep(1)
-                                        usera = watcher.summoner.by_name(my_region, nameArr[i])
-                                        user_id = usera['id']
-                                        print(nameArr[i], " : ", user_id)
-                                        ranked_stats = watcher.league.by_summoner(my_region, user_id)
-                                        print(ranked_stats)
-                                        win = ranked_stats[0]['wins']
-                                        lose = ranked_stats[0]['losses']
-                                        winrate = win / (win + lose) * 100
-                                        gameNbr = win + lose
-                                        totalWinrate = totalWinrate + winrate
                                         try:
-                                            elo = ranked_stats[0]['tier']
-                                        except KeyError:
-                                            print("tier error")
-                                            elo = "unranked"
-                                        try:
-                                            rank = ranked_stats[0]['rank']
-                                        except KeyError:
-                                            print("rank error")
-                                            rank = ""
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
-                                    print("totalWinrate =" + str(totalWinrate / 5))
+                                            usera = watcher.summoner.by_name(my_region, nameArr[i])
+                                            sleep(0.3)
+                                            user_id = usera['id']
+                                            print(nameArr[i], " : ", user_id)
+                                           
+                                            try: 
+                                                ranked_stats = watcher.league.by_summoner(my_region, user_id)
+                                                print(ranked_stats)
+                                                try:
+                                                    win = ranked_stats[0]['wins']
+                                                except IndexError:
+                                                    print("no ranked stats")
+                                                    win = 1
+                                                try:
+                                                    lose = ranked_stats[0]['losses']
+                                                except IndexError:
+                                                    print("no ranked stats")
+                                                    lose = 1
+                                                try:
+                                                    elo = ranked_stats[0]['tier']
+                                                except KeyError:
+                                                    print("tier error")
+                                                    elo = "unranked"
+                                                try:
+                                                    rank = ranked_stats[0]['rank']
+                                                except KeyError:
+                                                    print("rank error")
+                                                    rank = "unranked"
+                                                winrate = win / (win + lose) * 100
+                                                gameNbr = win + lose
+                                                totalWinrate = totalWinrate + winrate
+                                                await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
+                                            except ApiError:
+                                                print("error in get ranked stats")
+                                                await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas :'("})
+                                            
+                                            sleep(0.3)    
+                                            print("totalWinrate =" + str(totalWinrate / nbPlayer))
+                                        except ApiError:
+                                            print("error in get user id. check your api key ?")
+                                            await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " user id :'("})
+                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://euw.op.gg/multi/query=" + nospaces[0] + "%2C" + nospaces[1] + "%2C" + nospaces[2] + "%2C" + nospaces[3] + "%2C" + nospaces[4]})
                                     sleep(7)
-                                    if totalWinrate / 5 > 50:
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5,2)) + "%, We can win this!"})
+                                    if totalWinrate / nbPlayer > 50:
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, We can win this!"})
                                     else:
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / 5,2)) + "%, it will be hard ..."})
-                                    sleep(15)
-                                    exit(1)    
-                                    showNotInChampSelect = False
-                                    checkForLobby = True    
-                                print('\n')
+                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, it will be hard ..."})
+                                    sleep(7)
+                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Github: NoeMoyen"})
+                                    showNotInChampSelect = True
+                                    checkForLobby = True 
+                                    exit(0)   
                                 #showNotInChampSelect = False
                                 #checkForLobby = True
                                     
