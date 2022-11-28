@@ -29,6 +29,7 @@ showNotInChampSelect = True
 
 # functions
 
+
 def getLCUName():
     '''
     Get LeagueClient executable name depending on platform.
@@ -174,53 +175,40 @@ async def connect(connection):
                                     for i in range(len(nameArr)):
                                         try:
                                             usera = watcher.summoner.by_name(my_region, nameArr[i])
-                                            sleep(0.3)
+                                            #sleep(0.3)
                                             user_id = usera['id']
-                                            print(nameArr[i], " : ", user_id)
+                                            #print(nameArr[i], " : ", user_id)
                                            
                                             try: 
                                                 ranked_stats = watcher.league.by_summoner(my_region, user_id)
-                                                print(ranked_stats)
-                                                try:
-                                                    win = ranked_stats[0]['wins']
-                                                except IndexError:
-                                                    print("no ranked stats")
-                                                    win = 1
-                                                try:
-                                                    lose = ranked_stats[0]['losses']
-                                                except IndexError:
-                                                    print("no ranked stats")
-                                                    lose = 1
-                                                try:
-                                                    elo = ranked_stats[0]['tier']
-                                                except KeyError:
-                                                    print("tier error")
-                                                    elo = "unranked"
-                                                try:
-                                                    rank = ranked_stats[0]['rank']
-                                                except KeyError:
-                                                    print("rank error")
-                                                    rank = "unranked"
-                                                winrate = win / (win + lose) * 100
-                                                gameNbr = win + lose
-                                                totalWinrate = totalWinrate + winrate
+                                                #print(ranked_stats)
+                                                for j in range(len(ranked_stats)):
+                                                    try:
+                                                        if ranked_stats[j]['queueType'] == "RANKED_SOLO_5x5":
+                                                            rank = ranked_stats[j]['tier']
+                                                            elo = ranked_stats[j]['rank']
+                                                            win = ranked_stats[j]['wins']
+                                                            lose = ranked_stats[j]['losses']
+                                                            winrate = win / (win + lose)
+                                                            totalWinrate += winrate
+                                                            print(nameArr[i], " : ", rank, elo, winrate)
+                                                            winrate = win / (win + lose) * 100
+                                                            gameNbr = win + lose
+                                                            totalWinrate = totalWinrate + winrate                
+                                                    except KeyError:
+                                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas, first game ? "})
                                                 await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
                                             except ApiError:
                                                 print("error in get ranked stats")
-                                                await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas :'("})
-                                            
-                                            sleep(0.3)    
-                                            print("totalWinrate =" + str(totalWinrate / nbPlayer))
+                                                await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas :'("}) 
                                         except ApiError:
                                             print("error in get user id. check your api key ?")
                                             await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " user id :'("})
                                     await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://euw.op.gg/multi/query=" + nospaces[0] + "%2C" + nospaces[1] + "%2C" + nospaces[2] + "%2C" + nospaces[3] + "%2C" + nospaces[4]})
-                                    sleep(7)
                                     if totalWinrate / nbPlayer > 50:
                                         await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, We can win this!"})
                                     else:
                                         await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, it will be hard ..."})
-                                    sleep(7)
                                     await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Github: NoeMoyen"})
                                     showNotInChampSelect = True
                                     checkForLobby = True 
