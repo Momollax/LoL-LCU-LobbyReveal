@@ -15,7 +15,7 @@ disable_warnings()
 
 # global variables
 
-api_key = '<RIOT API KEY>'
+api_key = 'RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
 watcher = LolWatcher(api_key)
 my_region = 'euw1'
 
@@ -24,7 +24,7 @@ auth_token = None
 riotclient_auth_token = None
 riotclient_app_port = None
 region = None
-lcu_name = None  # LeagueClientUx executable name
+lcu_name = None   # LeagueClientUx executable name
 showNotInChampSelect = True
 
 # functions
@@ -185,8 +185,8 @@ async def connect(connection):
                                                 for j in range(len(ranked_stats)):
                                                     try:
                                                         if ranked_stats[j]['queueType'] == "RANKED_SOLO_5x5":
-                                                            rank = ranked_stats[j]['tier']
-                                                            elo = ranked_stats[j]['rank']
+                                                            elo = ranked_stats[j]['tier']
+                                                            rank = ranked_stats[j]['rank']
                                                             win = ranked_stats[j]['wins']
                                                             lose = ranked_stats[j]['losses']
                                                             winrate = win / (win + lose)
@@ -195,9 +195,9 @@ async def connect(connection):
                                                             winrate = win / (win + lose) * 100
                                                             gameNbr = win + lose
                                                             totalWinrate = totalWinrate + winrate                
+                                                            await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
                                                     except KeyError:
                                                         await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas, first game ? "})
-                                                await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
                                             except ApiError:
                                                 print("error in get ranked stats")
                                                 await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas :'("}) 
@@ -205,13 +205,11 @@ async def connect(connection):
                                             print("error in get user id. check your api key ?")
                                             await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " user id :'("})
                                     await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://euw.op.gg/multi/query=" + nospaces[0] + "%2C" + nospaces[1] + "%2C" + nospaces[2] + "%2C" + nospaces[3] + "%2C" + nospaces[4]})
-                                    if totalWinrate / nbPlayer > 50:
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, We can win this!"})
-                                    else:
-                                        await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Average winrate is " + str(round(totalWinrate / nbPlayer,2)) + "%, it will be hard ..."})
                                     await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Github: NoeMoyen"})
+                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Please rate my homemade bot from 0 to 10, and if you have any idea, please let me know :)"})
                                     showNotInChampSelect = True
                                     checkForLobby = True 
+
                                     exit(0)   
                                 #showNotInChampSelect = False
                                 #checkForLobby = True
