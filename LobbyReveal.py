@@ -1,6 +1,5 @@
 import sys
 import requests
-from urllib3 import disable_warnings
 import json
 from time import sleep
 import platform
@@ -9,10 +8,8 @@ import base64
 from os import system, name
 from lcu_driver import Connector
 from riotwatcher import LolWatcher, ApiError
-
-
-disable_warnings()
-
+import warnings
+warnings.filterwarnings('ignore')
 # global variables
 
 api_key = 'RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
@@ -26,7 +23,6 @@ riotclient_app_port = None
 region = None
 lcu_name = None   # LeagueClientUx executable name
 showNotInChampSelect = True
-
 # functions
 
 
@@ -90,6 +86,14 @@ connector = Connector()
 async def connect(connection):
     
     global showNotInChampSelect
+    try:
+        watcher.summoner.by_name(my_region, 'iiil')
+       
+    except ApiError:
+        #open braves website
+        print("your api key is not valid")
+        exit(0)
+    print("your api key is valid")
 
     getLCUName()
 
@@ -118,12 +122,12 @@ async def connect(connection):
     }
 
     get_current_summoner = lcu_api + '/lol-summoner/v1/current-summoner'
-
+    
     r = requests.get(get_current_summoner, headers=lcu_headers, verify=False)
     r = json.loads(r.text)
     print("Welcome to the League of Legends Party name finder :)!")
     print('Connected: ' + r['displayName'])
-
+    name = r['displayName']
     try :
         checkForLobby = True
         while True:
@@ -145,8 +149,10 @@ async def connect(connection):
                             get_lobby = riotclient_api + '/chat/v5/participants/champ-select'
                             r = requests.get(get_lobby, headers=riotclient_headers, verify=False)
                             r = json.loads(r.text)
+                            print(r)
                         except:
                             print("la route n'existe plus, logiciel obselète")
+                        muted = ""
                         nameArr = [] 
                         nospaces = []
                         ranked_stats = []
@@ -157,8 +163,9 @@ async def connect(connection):
                         try:
                             getChat = await connection.request('get', "/lol-chat/v1/conversations")
                             chat = await getChat.json()
+                            
                         except KeyError:
-                            print("error in get conversation")
+                            print("error in get conversation")  
                         for i in range(len(chat)):
                             if chat[i]['type'] == "championSelect":
                                 try:
@@ -167,22 +174,26 @@ async def connect(connection):
                                     print("error in get lobby id")
                                 headers = {'Content-type': 'application/json'}
                                 request = "/lol-chat/v1/conversations/" + str(lobbyID) + "/messages"
+                                sleep(1)
                                 for x in r['participants']:
-                                    nameArr.append(x['game_name'])
-                                    nospaces.append(x['game_name'].replace(" ", "%20"))
+                                    nameArr.append(x['name'])
+                                    nospaces.append(x['name'].replace(" ", "%20"))
                                 print(len(nameArr))
                                 if len(nameArr) == nbPlayer:
+                                    await printLogo(connection, request, headers)
+                                    #exit(0)
                                     for i in range(len(nameArr)):
                                         try:
                                             usera = watcher.summoner.by_name(my_region, nameArr[i])
                                             #sleep(0.3)
                                             user_id = usera['id']
-                                            #print(nameArr[i], " : ", user_id)
-                                           
+                                            print(nameArr[i], " : ", user_id)
+
                                             try: 
                                                 ranked_stats = watcher.league.by_summoner(my_region, user_id)
-                                                #print(ranked_stats)
+
                                                 for j in range(len(ranked_stats)):
+
                                                     try:
                                                         if ranked_stats[j]['queueType'] == "RANKED_SOLO_5x5":
                                                             elo = ranked_stats[j]['tier']
@@ -194,8 +205,9 @@ async def connect(connection):
                                                             print(nameArr[i], " : ", rank, elo, winrate)
                                                             winrate = win / (win + lose) * 100
                                                             gameNbr = win + lose
-                                                            totalWinrate = totalWinrate + winrate                
-                                                            await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " is " + str(elo) + " " + str(rank) + " with a " + str(round(winrate,2)) + "% winrate in " + str(gameNbr) + " games."})
+                                                            totalWinrate = totalWinrate + winrate
+                                                            await connection.request('post', request, headers=headers, data={"type":"chat", "body": str(nameArr[i]) + " " + str(elo) + " " + str(rank) + ". " + str(round(winrate,2)) + "% wr. " + str(gameNbr) + " games."})
+                                                            sleep(0.3)
                                                     except KeyError:
                                                         await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " ranked datas, first game ? "})
                                             except ApiError:
@@ -204,18 +216,49 @@ async def connect(connection):
                                         except ApiError:
                                             print("error in get user id. check your api key ?")
                                             await connection.request('post', request, headers=headers, data={"type":"chat", "body": "error getting " + str(nameArr[i]) + " user id :'("})
-                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://euw.op.gg/multi/query=" + nospaces[0] + "%2C" + nospaces[1] + "%2C" + nospaces[2] + "%2C" + nospaces[3] + "%2C" + nospaces[4]})
-                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Github: NoeMoyen"})
-                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "Please rate my homemade bot from 0 to 10, and if you have any idea, please let me know :)"})
+                                    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "https://euw.op.gg/multi/query=" + nospaces[0] + "%2C" + nospaces[1] + "%2C" + nospaces[2] + "%2C" + nospaces[3] + "%2C" + nospaces[4]})     
                                     showNotInChampSelect = True
                                     checkForLobby = True 
 
                                     exit(0)   
-                                #showNotInChampSelect = False
-                                #checkForLobby = True
+
                                     
     except KeyboardInterrupt:
         print('\n\n* Exiting... *')
         sys.exit(0)
 
+
+
+async def printLogo(connection, request, headers):
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⠈⠕⢕⢂⢕⢂⢕⢂⢔⢂⢕⢄⠂⣂⠂⠆⢂⢕⢂⢕"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⡢⡹⣦⡑⢂⢕⢂⢕⢂⢕⢂⠕⠔⠌⠝⠛⠶⠶⢶⣦"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⣦⡐⢌⢿⣷⣦⣅⡑⠕⠡⠐⢿⠿⣛⠟⠛⠛⠛⠛⠡"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⣿⣿⣦⣑⠝⢿⣿⣿⣿⣿⣿⡵⢁⣤⣶⣶⣿⢿⢿⢿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⣛⣻⣿⣿⣿⣦⣬⣙⣻⣿⣿⣷⣿⣿⢟⢝⢕⢕⢕⢕"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⢀⣀⣀⣈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣗⢕⢕⢕⢕⢕⢕"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⡿⡿⡻⡻⣿⣿⣴⣿⣿⣿⣿⣿⣿⣷⣵⣵⣵⣷⣿⣿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⡪⡪⡪⡪⣺⣿⣿⣿⣿⣿⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"groupchat", "body": "⡪⡪⣪⣾⣿⣿⣿⣿⠋⠐⢉⢍⢄⢌⠻⣿⣿⣿⣿⣿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⣾⣾⣿⣿⣿⣿⣿⣿⡀⢐⢕⢕⢕⢕⢕⡘⣿⣿⣿⣿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⣿⣿⣿⣿⣿⣿⣿⣿⣧⢐⢕⢕⢕⢕⢕⢅⣿⣿⣿⣿"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⠈⠻⣿⣿⣿⣿⣿⣿⣿⣷⣕⣑⣑⣑⣵⣿⣿⣿⡿⢋"})
+    sleep(0.3)
+    await connection.request('post', request, headers=headers, data={"type":"chat", "body": "⡅⠂⠄⠉⠛⠻⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⡿⢋⢔⢕"})
+    sleep(0.3)
+    
+
+
+
 connector.start()
+
